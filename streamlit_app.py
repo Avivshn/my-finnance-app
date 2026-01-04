@@ -1,16 +1,30 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 
-# הגדרת חיבור לגוגל שיטס
-url = "קישור_האקסל_שלך_כאן"
-conn = st.connection("gsheets", type=GSheetsConnection)
+# 1. הגדרת כותרת הדף (תמיכה בעברית)
+st.set_page_config(page_title="מחשבון השקעות", layout="wide")
 
-# קריאת הנתונים
-df = conn.read(spreadsheet=url, usecols=[0, 1]) # קורא עמודות A ו-B למשל
+# 2. הקישור הנקי (בלי כל מה שבא אחרי ה- /edit)
+# שים לב: השארתי רק את החלק המזהה של הקובץ
+url = "https://docs.google.com/spreadsheets/d/1GHCQVkhzxYL69tiOESk94xHZZkvjWPVTH_Gbg3xWqJE/edit"
 
-st.write("נתונים מהאקסל:", df)
+try:
+    # יצירת החיבור
+    conn = st.connection("gsheets", type=GSheetsConnection)
 
-# עדכון נתונים (דוגמה)
-if st.button("עדכן שכר"):
-    # כאן נוסיף לוגיקה שכותבת חזרה לתא ספציפי
-    st.success("הנתונים נשלחו לאקסל!")
+    # 3. קריאת הנתונים - כאן אנחנו אומרים לו במפורש לחפש את הגיליון בעברית
+    # הוספתי worksheet="מחשבון תמהיל"
+    df = conn.read(
+        spreadsheet=url,
+        worksheet="מחשבון תמהיל",
+        ttl="10m" # רענון נתונים כל 10 דקות
+    )
+
+    st.success("התחברנו בהצלחה!")
+    st.write("הנה הנתונים שלך:")
+    st.dataframe(df)
+
+except Exception as e:
+    st.error("אופס! יש עדיין בעיית חיבור.")
+    st.info("ודא שהגדרת את הגיליון כ-'Anyone with the link can EDIT' בגוגל שיטס.")
+    st.write(f"פרטי השגיאה: {e}")
