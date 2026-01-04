@@ -4,7 +4,7 @@ from streamlit_gsheets import GSheetsConnection
 st.set_page_config(page_title="מחשבון תמהיל", layout="wide")
 
 # שימוש בקישור הבסיסי ביותר ללא תוספות
-url = "https://docs.google.com/spreadsheets/d/1GHCQVkhzxYL69tiOESk94xHZZkvjWPVTH_Gbg3xWqJE/edit#gid=0"
+url = "https://docs.google.com/spreadsheets/d/1GHCQVkhzxYL69tiOESk94xHZZkvjWPVTH_Gbg3xWqJE/edit"
 
 st.title("💰 מחשבון תמהיל השקעות")
 
