@@ -3,67 +3,88 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # הגדרות עמוד
-st.set_page_config(page_title="דאשבורד השקעות", layout="wide")
+st.set_page_config(page_title="דאשבורד השקעות אישי", layout="wide")
 
-# הזרקת CSS לתיקון הפונט, הצבעים והמרכוז
+# CSS מקיף לתיקון פונט, צבעים ומרכוז
 st.markdown("""
     <style>
+    /* טעינת פונט Assistant מ-Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap');
 
-    /* הגדרות גלובליות - פונט ומרכוז */
-    html, body, [class*="css"], .stApp {
+    /* הגדרות גלובליות */
+    * {
         font-family: 'Assistant', sans-serif !important;
         direction: rtl;
-        text-align: center !important;
+    }
+
+    /* רקע כהה לאפליקציה */
+    .stApp {
         background-color: #0e1117 !important;
-        color: #e6edf3 !important;
     }
 
-    /* מרכוז כותרות */
-    h1, h2, h3, h4, h5, h6, .stMarkdown {
+    /* מרכוז כל הטקסטים בדף הראשי בלבד (לא בסיידבר) */
+    [data-testid="stMainViewContainer"] .stMarkdown, 
+    [data-testid="stMainViewContainer"] h1, 
+    [data-testid="stMainViewContainer"] h2, 
+    [data-testid="stMainViewContainer"] h3,
+    [data-testid="stMainViewContainer"] p {
         text-align: center !important;
-        width: 100%;
+        color: #ffffff !important;
     }
 
-    /* עיצוב כהה לכרטיסי המדדים ומרכוזם */
+    /* צבע לבן בוהק לכל הטקסטים בדף הראשי */
+    [data-testid="stMainViewContainer"] span, 
+    [data-testid="stMainViewContainer"] label {
+        color: #ffffff !important;
+    }
+
+    /* עיצוב כרטיסי המדדים (Metrics) - מרכוז וצבע */
     div[data-testid="stMetric"] {
         background-color: #161b22 !important;
         border: 1px solid #30363d !important;
         border-radius: 12px !important;
         padding: 20px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
+        text-align: center !important;
+        display: block !important;
     }
 
-    /* צבע המדד עצמו */
+    /* צבע המדד (המספר) */
     div[data-testid="stMetricValue"] {
         color: #58a6ff !important;
-        font-size: 2rem !important;
-    }
-
-    /* ביטול רקע לבן בתיבות קלט */
-    .stNumberInput input {
-        background-color: #0d1117 !important;
-        color: white !important;
-        border: 1px solid #30363d !important;
-    }
-
-    /* התאמת הסיידבר למראה כהה */
-    section[data-testid="stSidebar"] {
-        background-color: #161b22 !important;
-        border-left: 1px solid #30363d !important;
+        font-size: 2.2rem !important;
+        font-weight: 700 !important;
     }
     
-    /* הורדת הרווח הלבן למעלה */
+    /* כותרת המדד */
+    div[data-testid="stMetricLabel"] {
+        justify-content: center !important;
+        font-size: 1.1rem !important;
+    }
+
+    /* תיקון הסיידבר - טקסט לימין (לא ממורכז) */
+    [data-testid="stSidebar"] * {
+        text-align: right !important;
+    }
+
+    /* עיצוב תיבת ההמלצות */
+    .recommendation-box {
+        background-color: #161b22;
+        padding: 25px;
+        border-radius: 12px;
+        border: 1px solid #30363d;
+        margin-top: 20px;
+        color: #ffffff;
+        text-align: center;
+    }
+
+    /* הסרת רווחים מיותרים למעלה */
     .block-container {
         padding-top: 2rem !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# נתונים מה-CSV שהעלית 
+# נתונים מהמסמך שלך 
 if 'data' not in st.session_state:
     st.session_state.data = {
         "פנסיה": 54778,
@@ -91,24 +112,25 @@ with st.sidebar:
         for month in st.session_state.monthly_deposits.keys():
             st.session_state.monthly_deposits[month] = st.number_input(f"הפקדה ב{month}", value=float(st.session_state.monthly_deposits[month]))
 
-# חישובים 
+# חישובים לפי נתוני המקור 
 total_assets = sum(st.session_state.data.values())
+# סכימת החלק המנייתי לפי המסמך
 equity_sum = st.session_state.data["פנסיה"] + st.session_state.data["קרן השתלמות - שכיר"] + \
              st.session_state.data["קרן השתלמות - עצמאי"] + st.session_state.data["חשבון מסחר"]
 current_exposure = (equity_sum / total_assets) * 100 if total_assets > 0 else 0
-target_exposure = 72.0 
+target_exposure = 72.0 # כפי שמופיע ב-CSV 
 
 total_deposited_hst = sum(st.session_state.monthly_deposits.values())
-annual_cap = 20520
+annual_cap = 20520 # תקרת הפקדה לפי המסמך 
 remaining_cap = max(0, annual_cap - total_deposited_hst)
 
-# תצוגה ראשית
+# דף ראשי
 st.title("דאשבורד השקעות אישי")
-st.write(f"עדכון נתונים ליום {pd.Timestamp.now().strftime('%d/%m/%Y')}")
+st.markdown(f"עדכון נתונים: **{pd.Timestamp.now().strftime('%d/%m/%Y')}**")
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# שורת מדדים - כולם ממורכזים בזכות ה-CSS
+# שורת מדדים (KPIs) - כולם ממורכזים דרך ה-CSS
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("סה\"כ הון מוערך", f"₪{total_assets:,.0f}")
 m2.metric("חשיפה מנייתית", f"{current_exposure:.1f}%")
@@ -117,6 +139,7 @@ m4.metric("נותר להפקיד", f"₪{remaining_cap:,.0f}")
 
 st.markdown("<br>", unsafe_allow_html=True)
 
+# גרפים
 col_left, col_right = st.columns(2)
 
 with col_left:
@@ -125,7 +148,8 @@ with col_left:
         labels=list(st.session_state.data.keys()), 
         values=list(st.session_state.data.values()), 
         hole=.5,
-        marker=dict(colors=['#58a6ff', '#1f6feb', '#238636', '#da3633', '#8957e5', '#d29922', '#30363d'])
+        marker=dict(colors=['#58a6ff', '#1f6feb', '#238636', '#da3633', '#8957e5', '#d29922', '#30363d']),
+        textfont=dict(family="Assistant", color="white")
     )])
     fig_pie.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
@@ -136,17 +160,16 @@ with col_left:
     st.plotly_chart(fig_pie, use_container_width=True)
 
 with col_right:
-    st.subheader("ניצול תקרת הפקדה (עצמאי)")
+    st.subheader("ניצול תקרת השתלמות (עצמאי)")
     fig_gauge = go.Figure(go.Indicator(
         mode = "gauge+number",
         value = total_deposited_hst,
-        number = {'prefix': "₪", 'font': {'color': "#58a6ff", 'family': "Assistant"}},
+        number = {'prefix': "₪", 'font': {'color': "#58a6ff", 'family': "Assistant", 'size': 50}},
         gauge = {
             'axis': {'range': [None, annual_cap], 'tickcolor': "white"},
             'bar': {'color': "#58a6ff"},
             'bgcolor': "#161b22",
-            'steps': [
-                {'range': [0, annual_cap], 'color': "#30363d"}]
+            'steps': [{'range': [0, annual_cap], 'color': "#30363d"}]
         }
     ))
     fig_gauge.update_layout(
@@ -157,12 +180,12 @@ with col_right:
     )
     st.plotly_chart(fig_gauge, use_container_width=True)
 
-# המלצות
-st.markdown("### הצעות לשיפור התיק")
+# המלצות - בתוך Div מעוצב למרכוז
 st.markdown(f"""
-    <div style="background-color: #161b22; padding: 25px; border-radius: 12px; border: 1px solid #30363d; margin-top: 20px;">
-        • <b>ניצול הטבות מס:</b> השנה הפקדת ₪{total_deposited_hst:,.0f}. מומלץ לנצל את יתרת ה-₪{remaining_cap:,.0f} עד סוף השנה.<br><br>
-        • <b>חשיפה למניות:</b> החשיפה הנוכחית שלך ({current_exposure:.1f}%) גבוהה מיעד ה-72% שבחרת. שקול לאזן באמצעות רכיב סולידי.<br><br>
-        • <b>ניהול עו"ש:</b> יתרה של ₪{st.session_state.data['עובר ושב']:,.0f} בעו"ש. וודא שזה תואם את קרן החירום המתוכננת שלך.
+    <div class="recommendation-box">
+        <h3>💡 הצעות לשיפור התיק</h3>
+        <p>• <b>ניצול הטבות מס:</b> השנה הפקדת ₪{total_deposited_hst:,.0f}. נותרו לך עוד ₪{remaining_cap:,.0f} לניצול מלא של תקרת העצמאי.</p>
+        <p>• <b>איזון תיק:</b> החשיפה הנוכחית ({current_exposure:.1f}%) מעל יעד ה-{target_exposure}% שהגדרת. שקול להפנות הפקדות למסלולים סולידיים.</p>
+        <p>• <b>ניהול מזומן:</b> יתרה של ₪{st.session_state.data['עובר ושב']:,.0f} בעו"ש. וודא שיש לך מספיק נזילות להוצאות הקרובות.</p>
     </div>
 """, unsafe_allow_html=True)
