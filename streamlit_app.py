@@ -3,18 +3,59 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # הגדרות עמוד
-st.set_page_config(page_title="דאשבורד ניהול תיק השקעות", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="Portfolio Tracker Pro", layout="wide")
 
-# עיצוב CSS מודרני
+# הזרקת CSS עבור פונט Assistant ועיצוב Dark Mode
 st.markdown("""
     <style>
-    .main { background-color: #f5f7f9; }
-    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    div[data-testid="stSidebar"] { background-color: #1e293b; color: white; }
+    @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;700&display=swap');
+
+    html, body, [class*="css"]  {
+        font-family: 'Assistant', sans-serif;
+        direction: rtl;
+        text-align: right;
+    }
+
+    /* עיצוב רקע כהה כללי */
+    .main {
+        background-color: #0e1117;
+        color: #e6edf3;
+    }
+
+    /* עיצוב כרטיסי המדדים (Metrics) */
+    div[data-testid="stMetric"] {
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    }
+
+    /* התאמת צבע טקסט במדדים */
+    div[data-testid="stMetricValue"] {
+        color: #58a6ff !important;
+    }
+
+    /* כותרות */
+    h1, h2, h3 {
+        color: #ffffff;
+    }
+
+    /* סיידבר */
+    section[data-testid="stSidebar"] {
+        background-color: #161b22;
+        border-left: 1px solid #30363d;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# אתחול נתונים (על בסיס המסמך שלך)
+# אתחול State לניהול הפקדות חודשיות
+if 'monthly_deposits' not in st.session_state:
+    st.session_state.monthly_deposits = {month: 0.0 for month in [
+        "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", 
+        "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"
+    ]}
+
 if 'data' not in st.session_state:
     st.session_state.data = {
         "פנסיה": 54778,
@@ -25,96 +66,95 @@ if 'data' not in st.session_state:
         "קרן כספית/אג\"ח": 7754,
         "עובר ושב": 11263
     }
-    st.session_state.exposure = 72  # אחוז חשיפה רצוי
-    st.session_state.monthly_deposit = 4000
-    st.session_state.annual_cap = 20520
 
-# תפריט צדדי לעריכת נתונים
+# תפריט צד
 with st.sidebar:
-    st.header("⚙️ הגדרות ועריכה")
-    st.subheader("יתרות נוכחיות")
-    for key in st.session_state.data.keys():
-        st.session_state.data[key] = st.number_input(f"{key}", value=int(st.session_state.data[key]), step=1000)
+    st.title("🛠️ ניהול נתונים")
     
-    st.divider()
-    st.subheader("פרמטרים נוספים")
-    st.session_state.exposure = st.slider("יעד חשיפה מנייתית (%)", 0, 100, st.session_state.exposure)
-    st.session_state.monthly_deposit = st.number_input("הפקדה חודשית למסחר", value=st.session_state.monthly_deposit)
+    tab1, tab2 = st.tabs(["יתרות", "הפקדות השתלמות"])
+    
+    with tab1:
+        st.subheader("עדכון יתרות")
+        for key in st.session_state.data.keys():
+            st.session_state.data[key] = st.number_input(f"{key}", value=int(st.session_state.data[key]), step=500)
+    
+    with tab2:
+        st.subheader("פירוט הפקדות 2026")
+        for month in st.session_state.monthly_deposits.keys():
+            st.session_state.monthly_deposits[month] = st.number_input(f"הפקדה ב{month}", value=float(st.session_state.monthly_deposits[month]), step=100.0)
 
 # חישובים
+total_deposited_hst = sum(st.session_state.monthly_deposits.values())
+annual_cap = 20520
+remaining_cap = max(0, annual_cap - total_deposited_hst)
+
 total_assets = sum(st.session_state.data.values())
-# הנחה: פנסיה, השתלמות ומסחר הם מנייתיים (לפי הקובץ שלך )
 equity_sum = st.session_state.data["פנסיה"] + st.session_state.data["קרן השתלמות - שכיר"] + \
              st.session_state.data["קרן השתלמות - עצמאי"] + st.session_state.data["חשבון מסחר"]
-current_exposure_pct = (equity_sum / total_assets) * 100 if total_assets > 0 else 0
+exposure_pct = (equity_sum / total_assets) * 100 if total_assets > 0 else 0
 
-# כותרת ראשית
-st.title("📊 ניהול תיק השקעות חכם")
-st.markdown(f"עדכון אחרון: **{pd.Timestamp.now().strftime('%d/%m/%Y')}**")
+# תצוגה ראשית
+st.title("🌙 דאשבורד השקעות אישי")
+st.markdown("---")
 
-# שורת מדדים (KPIs)
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("סה\"כ נכסים", f"₪{total_assets:,.0f}")
-col2.metric("חשיפה מנייתית", f"{current_exposure_pct:.1f}%", f"{current_exposure_pct - st.session_state.exposure:.1f}% מיעד")
-col3.metric("הפקדה שנתית להשתלמות", f"₪{st.session_state.annual_cap:,.0f}")
-col4.metric("יתרה בעו\"ש", f"₪{st.session_state.data['עובר ושב']:,.0f}")
+# שורת מדדים
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("סה\"כ הון מוערך", f"₪{total_assets:,.0f}")
+m2.metric("חשיפה מנייתית", f"{exposure_pct:.1f}%")
+m3.metric("הופקד להשתלמות", f"₪{total_deposited_hst:,.0f}")
+m4.metric("נותר לתקרה", f"₪{remaining_cap:,.0f}")
 
-st.divider()
+st.write("") # רווח
 
 # גרפים
-c1, c2 = st.columns([1, 1])
+col_left, col_right = st.columns(2)
 
-with c1:
+with col_left:
     st.subheader("חלוקת נכסים")
-    fig_pie = go.Figure(data=[go.Pie(labels=list(st.session_state.data.keys()), 
-                                   values=list(st.session_state.data.values()), 
-                                   hole=.4,
-                                   marker=dict(colors=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']))])
-    fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+    fig_pie = go.Figure(data=[go.Pie(
+        labels=list(st.session_state.data.keys()), 
+        values=list(st.session_state.data.values()), 
+        hole=.5,
+        textinfo='percent',
+        marker=dict(colors=['#58a6ff', '#1f6feb', '#238636', '#da3633', '#8957e5', '#d29922', '#30363d'])
+    )])
+    fig_pie.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="white", family="Assistant"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+    )
     st.plotly_chart(fig_pie, use_container_width=True)
 
-with c2:
-    st.subheader("ניצול תקרת הפקדה (השתלמות עצמאי)")
-    # הנחה שהופקד כבר חלק מהסכום (למשל 900 ש"ח לחודש כפול מספר חודשים)
-    deposited_so_far = 900 * pd.Timestamp.now().month 
-    remaining_cap = max(0, st.session_state.annual_cap - deposited_so_far)
-    
+with col_right:
+    st.subheader("ניצול תקרת הפקדה (עצמאי)")
     fig_gauge = go.Figure(go.Indicator(
         mode = "gauge+number",
-        value = deposited_so_far,
-        domain = {'x': [0, 1], 'y': [0, 1]},
-        title = {'text': "ניצול תקרה (₪)"},
+        value = total_deposited_hst,
+        number = {'prefix': "₪", 'font': {'color': "#58a6ff", 'family': "Assistant"}},
         gauge = {
-            'axis': {'range': [None, st.session_state.annual_cap]},
-            'bar': {'color': "#1e293b"},
+            'axis': {'range': [None, annual_cap], 'tickcolor': "white"},
+            'bar': {'color': "#58a6ff"},
+            'bgcolor': "#30363d",
             'steps': [
-                {'range': [0, st.session_state.annual_cap*0.8], 'color': "lightgray"},
-                {'range': [st.session_state.annual_cap*0.8, st.session_state.annual_cap], 'color': "gray"}]
+                {'range': [0, annual_cap*0.9], 'color': "#161b22"},
+                {'range': [annual_cap*0.9, annual_cap], 'color': "#238636"}]
         }
     ))
+    fig_gauge.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        font=dict(color="white", family="Assistant"),
+        height=350
+    )
     st.plotly_chart(fig_gauge, use_container_width=True)
 
-st.divider()
-
-# המלצות לשיפור התיק
-st.subheader("💡 הצעות לשיפור התיק")
-recs = []
-
-if current_exposure_pct > st.session_state.exposure + 5:
-    recs.append("⚠️ **חשיפת יתר למניות:** התיק כרגע אגרסיבי מהיעד. שקול להפנות את ההפקדה החודשית הבאה לקרן כספית.")
-elif current_exposure_pct < st.session_state.exposure - 5:
-    recs.append("📉 **חשיפה נמוכה למניות:** התיק סולידי מדי. מומלץ להגדיל חשיפה ל-S&P 500 או ACWI בתיק המסחר.")
-
-if remaining_cap > 0:
-    recs.append(f"💰 **הטבת מס:** נותרו לך ₪{remaining_cap:,.0f} לניצול תקרת השתלמות עצמאי השנה. כדאי להפקיד לפני סוף השנה.")
-
-if st.session_state.data["עובר ושב"] > 20000:
-    recs.append("🏦 **עודף מזומן:** יש לך מעל 20,000 ש\"ח בעו\"ש. כדאי להעביר חלק לקרן כספית כדי לקבל ריבית.")
-
-for r in recs:
-    st.info(r)
-
-# טבלת נתונים גולמיים
-with st.expander("לצפייה בנתונים הגולמיים"):
-    df = pd.DataFrame(list(st.session_state.data.items()), columns=['אפיק', 'יתרה (₪)'])
-    st.table(df)
+# המלצות
+st.markdown("### 💡 תובנות לניהול התיק")
+with st.container():
+    st.markdown(f"""
+    <div style="background-color: #161b22; padding: 20px; border-radius: 10px; border: 1px solid #30363d;">
+        • <b>ניצול הטבות מס:</b> נותרו לך ₪{remaining_cap:,.0f} להפקיד לקרן השתלמות כדי למקסם את הטבת המס השנתית.<br>
+        • <b>איזון תיק:</b> החשיפה הנוכחית שלך היא {exposure_pct:.1f}%. אם היעד הוא 72%, עליך לבחון הגדלה/הקטנה של רכיבי המניות.<br>
+        • <b>נזילות:</b> יש לך ₪{st.session_state.data['עובר ושב']:,.0f} בעובר ושב. ודא שזה תואם את צרכי המחיה המיידיים שלך.
+    </div>
+    """, unsafe_allow_html=True)
