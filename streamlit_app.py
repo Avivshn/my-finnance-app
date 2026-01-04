@@ -5,14 +5,14 @@ import plotly.graph_objects as go
 # הגדרות עמוד
 st.set_page_config(page_title="דאשבורד השקעות אישי", layout="wide")
 
-# --- הזרקת פונטים בצורה יציבה יותר (link + preconnect) ---
+# טעינת פונט Assistant בצורה יציבה (Google Fonts)
 st.markdown("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700&display=swap" rel="stylesheet">
 """, unsafe_allow_html=True)
 
-# CSS לתיקון פונט, צבעים ומרכוז מלא (במיוחד Metrics)
+# CSS לתיקון פונט, צבעים, מרכוז מלא, שדות קלט כהים
 st.markdown("""
 <style>
     :root {
@@ -50,49 +50,48 @@ st.markdown("""
         color: var(--text) !important;
     }
 
-    /* ===== תיקון מרכוז ל-METRICS ===== */
-    div[data-testid="stMetric"] {
-        background-color: var(--card) !important;
-        border: 1px solid var(--border) !important;
-        border-radius: 12px !important;
-        padding: 22px !important;
-        text-align: center !important;
+    /* ===== Metrics: מרכוז חזק לכל הקוביות ולכל רכיבי הפנים ===== */
+    div[data-testid="stMetric"]{
+      background-color: var(--card) !important;
+      border: 1px solid var(--border) !important;
+      border-radius: 12px !important;
+      padding: 22px !important;
 
-        /* הכי חשוב: למרכז את כל תכולת הכרטיס */
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 6px !important;
-        width: 100% !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      justify-content:center !important;
+      text-align:center !important;
+      width:100% !important;
     }
 
-    /* ה-label וה-value בנויים כ-flex פנימי — מכריחים מרכז */
-    div[data-testid="stMetricLabel"],
-    div[data-testid="stMetricValue"],
-    div[data-testid="stMetricDelta"] {
-        width: 100% !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        text-align: center !important;
+    div[data-testid="stMetric"] > div,
+    div[data-testid="stMetric"] [data-testid="stMetricLabel"],
+    div[data-testid="stMetric"] [data-testid="stMetricValue"],
+    div[data-testid="stMetric"] [data-testid="stMetricDelta"]{
+      width:100% !important;
+      display:flex !important;
+      justify-content:center !important;
+      align-items:center !important;
+      text-align:center !important;
     }
 
-    /* כותרת המדד */
-    div[data-testid="stMetricLabel"] * {
-        color: var(--text) !important;
-        font-size: 1.15rem !important;
-        font-weight: 600 !important;
-        text-align: center !important;
+    div[data-testid="stMetric"] *{
+      text-align:center !important;
+      justify-content:center !important;
     }
 
-    /* ערך המדד */
-    div[data-testid="stMetricValue"] * {
-        color: var(--accent) !important;
-        font-size: 2.35rem !important;
-        font-weight: 700 !important;
-        text-align: center !important;
-        line-height: 1.1 !important;
+    div[data-testid="stMetric"] [data-testid="stMetricLabel"] *{
+      color: var(--text) !important;
+      font-size: 1.15rem !important;
+      font-weight: 600 !important;
+    }
+
+    div[data-testid="stMetric"] [data-testid="stMetricValue"] *{
+      color: var(--accent) !important;
+      font-size: 2.35rem !important;
+      font-weight: 700 !important;
+      line-height: 1.1 !important;
     }
 
     /* Sidebar */
@@ -100,6 +99,29 @@ st.markdown("""
     [data-testid="stSidebar"] * { text-align: right !important; color: var(--text) !important; }
 
     hr { border-top: 1px solid var(--border) !important; }
+
+    /* ===== Inputs (number_input וכו’) כהים וקריאים ===== */
+    [data-baseweb="input"] > div{
+      background-color: var(--card) !important;
+      border: 1px solid var(--border) !important;
+    }
+
+    [data-baseweb="input"] input{
+      color: var(--text) !important;
+      background-color: transparent !important;
+      font-family: var(--font) !important;
+      text-align: right !important;
+    }
+
+    .stNumberInput label, .stTextInput label, .stSelectbox label {
+      color: var(--text) !important;
+    }
+
+    /* טקסטים קטנים של Streamlit שלפעמים יוצאים אפורים */
+    .stCaption, small, [data-testid="stCaptionContainer"] {
+      color: var(--text) !important;
+      opacity: 1 !important;
+    }
 
     /* עיצוב תיבת ההמלצות */
     .recommendation-box {
@@ -127,7 +149,10 @@ if 'data' not in st.session_state:
     }
 
 if 'monthly_deposits' not in st.session_state:
-    st.session_state.monthly_deposits = {m: 0.0 for m in ["ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני", "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"]}
+    st.session_state.monthly_deposits = {m: 0.0 for m in [
+        "ינואר", "פברואר", "מרץ", "אפריל", "מאי", "יוני",
+        "יולי", "אוגוסט", "ספטמבר", "אוקטובר", "נובמבר", "דצמבר"
+    ]}
 
 # Sidebar
 with st.sidebar:
@@ -188,7 +213,12 @@ with col_left:
     fig_pie.update_layout(
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color="#FFFFFF", family="Assistant"),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom", y=-0.3,
+            xanchor="center", x=0.5,
+            font=dict(color="#FFFFFF", family="Assistant", size=14)
+        ),
         margin=dict(t=20, b=20, l=20, r=20)
     )
     st.plotly_chart(fig_pie, use_container_width=True)
@@ -200,7 +230,11 @@ with col_right:
         value=total_deposited_hst,
         number={'prefix': "₪", 'font': {'color': "#58a6ff", 'family': "Assistant", 'size': 60}},
         gauge={
-            'axis': {'range': [None, annual_cap], 'tickcolor': "white"},
+            'axis': {
+                'range': [None, annual_cap],
+                'tickcolor': "white",
+                'tickfont': {'color': "white", 'family': "Assistant", 'size': 14}
+            },
             'bar': {'color': "#58a6ff"},
             'bgcolor': "#161b22",
             'steps': [{'range': [0, annual_cap], 'color': "#30363d"}]
